@@ -1,0 +1,73 @@
+# Pydoclint VS Code Extension
+
+A VS Code extension that integrates **pydoclint** to provide real-time diagnostics on Python docstring quality with inline error display and Problems panel integration.
+
+## Features
+
+- 🔍 **Real-time diagnostics**: Docstring validation while typing
+- 📝 **Inline errors**: Display issues directly in the editor  
+- 🚨 **Problems panel**: Full integration with VS Code's diagnostic system
+- ⚙️ **Configuration**: Support for `pyproject.toml` files and VS Code settings
+- 🎯 **Multiple styles**: Google, NumPy, and Sphinx docstring conventions
+
+## Requirements
+
+- Python 3.8+ installed
+- `pydoclint` package installed in your Python environment
+
+## Extension Settings
+
+This extension contributes the following settings:
+
+- `pydoclint.enabled`: Enable/disable pydoclint diagnostics (default: `true`)
+- `pydoclint.style`: Docstring style to validate - `google`, `numpy`, or `sphinx` (default: `google`)
+- `pydoclint.configFile`: Path to pydoclint configuration file (default: `pyproject.toml`)
+
+## Commands
+
+- **Pydoclint: Check Current File**: Manually check the current Python file
+- **Pydoclint: Check Workspace**: Check all Python files in the workspace
+
+## Installation
+
+1. Install the extension from the VS Code marketplace
+2. Ensure `pydoclint` is installed in your Python environment:
+   ```bash
+   pip install pydoclint
+   ```
+3. Open a Python file - the extension will automatically activate
+
+## Configuration Example
+
+Add to your `pyproject.toml`:
+
+```toml
+[tool.pydoclint]
+style = "google"
+require-return-section-when-returning-nothing = false
+arg-type-hints-in-signature = true
+arg-type-hints-in-docstring = false
+check-return-types = false
+check-class-attributes = false
+```
+
+## Architecture
+
+This extension uses the **Language Server Protocol (LSP)** for optimal VS Code integration:
+
+- **Language Server**: TypeScript/Node.js server that communicates with pydoclint
+- **Client Extension**: VS Code extension that manages diagnostics and UI
+- **Problem Matcher**: Native integration with VS Code's problem system
+
+## Contributing
+
+1. Clone this repository
+2. Run `npm install` to install dependencies
+3. Press `F5` to launch a new VS Code window with the extension loaded
+4. Make changes and test
+
+## Release Notes
+
+### 0.0.1
+
+Initial release with basic pydoclint integration.
