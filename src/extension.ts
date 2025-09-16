@@ -1,26 +1,271 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import * as path from 'path';
+import { spawn } from 'child_process';
+import * as fs from 'fs';
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
+interface PydoclintError {
+	file: string;
+	line: number;
+	code: string;
+	message: string;
+}
+
 export function activate(context: vscode.ExtensionContext) {
+	console.log('Pydoclint extension is now active!');
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "pydoclint" is now active!');
+	// Create diagnostic collection
+	const diagnosticCollection = vscode.languages.createDiagnosticCollection('pydoclint');
+	context.subscriptions.push(diagnosticCollection);
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('pydoclint.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from Pydoclint!');
+	// Register commands
+	const checkFileCommand = vscode.commands.registerCommand('pydoclint.checkFile', () => {
+		console.log('Pydoclint: checkFile command triggered');
+		const activeEditor = vscode.window.activeTextEditor;
+		if (activeEditor && activeEditor.document.languageId === 'python') {
+			console.log('Pydoclint: Checking Python file:', activeEditor.document.fileName);
+			vscode.window.showInformationMessage('Pydoclint: Checking current Python file...');
+			checkPythonFile(activeEditor.document, diagnosticCollection);
+		} else {
+			console.log('Pydoclint: No Python file open');
+			vscode.window.showWarningMessage('Please open a Python file to check.');
+		}
 	});
 
-	context.subscriptions.push(disposable);
+	const checkWorkspaceCommand = vscode.commands.registerCommand('pydoclint.checkWorkspace', () => {
+		console.log('Pydoclint: checkWorkspace command triggered');
+		vscode.window.showInformationMessage('Pydoclint: Checking workspace Python files...');
+		checkWorkspacePythonFiles(diagnosticCollection);
+	});
+
+	context.subscriptions.push(checkFileCommand, checkWorkspaceCommand);
+
+	// Auto-check on save
+	const onSaveDisposable = vscode.workspace.onDidSaveTextDocument((document) => {
+		if (document.languageId === 'python') {
+			const config = vscode.workspace.getConfiguration('pydoclint');
+			if (config.get('enabled', true)) {
+				checkPythonFile(document, diagnosticCollection);
+			}
+		}
+	});
+
+	context.subscriptions.push(onSaveDisposable);
+
+	// Auto-check on open
+	const onOpenDisposable = vscode.workspace.onDidOpenTextDocument((document) => {
+		if (document.languageId === 'python') {
+			const config = vscode.workspace.getConfiguration('pydoclint');
+			if (config.get('enabled', true)) {
+				checkPythonFile(document, diagnosticCollection);
+			}
+		}
+	});
+
+	context.subscriptions.push(onOpenDisposable);
+
+	// Check already open Python files
+	vscode.workspace.textDocuments.forEach(document => {
+		if (document.languageId === 'python') {
+			const config = vscode.workspace.getConfiguration('pydoclint');
+			if (config.get('enabled', true)) {
+				checkPythonFile(document, diagnosticCollection);
+			}
+		}
+	});
+}
+
+async function checkPythonFile(document: vscode.TextDocument, diagnosticCollection: vscode.DiagnosticCollection) {
+	if (document.isUntitled) {
+		console.log('Pydoclint: Skipping untitled document');
+		return;
+	}
+
+	try {
+		console.log('Pydoclint: Starting check for file:', document.fileName);
+		const filePath = document.fileName;
+		const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
+		const config = vscode.workspace.getConfiguration('pydoclint');
+		
+		// Get configuration
+		const style = config.get('style', 'google');
+		const configFile = config.get('configFile', 'pyproject.toml');
+		
+		console.log('Pydoclint: Using style:', style);
+		console.log('Pydoclint: Config file:', configFile);
+		
+		// Build pydoclint command
+		const args = [
+			'--style', style,
+			'--quiet',
+			filePath
+		];
+		
+		// Add config file if it exists
+		if (workspaceFolder) {
+			const configPath = path.join(workspaceFolder.uri.fsPath, configFile);
+			if (fs.existsSync(configPath)) {
+				args.unshift('--config', configPath);
+				console.log('Pydoclint: Using config file:', configPath);
+			} else {
+				console.log('Pydoclint: Config file not found:', configPath);
+			}
+		}
+
+		console.log('Pydoclint: Running command with args:', args);
+		const errors = await runPydoclint(args, workspaceFolder?.uri.fsPath);
+		console.log('Pydoclint: Found', errors.length, 'errors');
+		
+		const diagnostics = parsePydoclintOutput(errors, document);
+		console.log('Pydoclint: Created', diagnostics.length, 'diagnostics');
+		
+		diagnosticCollection.set(document.uri, diagnostics);
+		
+		if (diagnostics.length > 0) {
+			vscode.window.showInformationMessage(`Pydoclint: Found ${diagnostics.length} issues`);
+		} else {
+			vscode.window.showInformationMessage('Pydoclint: No issues found');
+		}
+	} catch (error) {
+		console.error('Pydoclint: Error running pydoclint:', error);
+		vscode.window.showErrorMessage(`Pydoclint error: ${error}`);
+	}
+}
+
+async function checkWorkspacePythonFiles(diagnosticCollection: vscode.DiagnosticCollection) {
+	const pythonFiles = await vscode.workspace.findFiles('**/*.py', '**/node_modules/**');
+	
+	for (const fileUri of pythonFiles) {
+		try {
+			const document = await vscode.workspace.openTextDocument(fileUri);
+			await checkPythonFile(document, diagnosticCollection);
+		} catch (error) {
+			console.error(`Error checking file ${fileUri.fsPath}:`, error);
+		}
+	}
+	
+	vscode.window.showInformationMessage('Pydoclint workspace check completed.');
+}
+
+function runPydoclint(args: string[], cwd?: string): Promise<PydoclintError[]> {
+	return new Promise((resolve, reject) => {
+		console.log('Pydoclint: Spawning process with args:', args);
+		console.log('Pydoclint: Working directory:', cwd);
+		
+		const child = spawn('pydoclint', args, {
+			cwd: cwd,
+			shell: true
+		});
+		
+		let stdout = '';
+		let stderr = '';
+		
+		child.stdout.on('data', (data) => {
+			stdout += data.toString();
+		});
+		
+		child.stderr.on('data', (data) => {
+			stderr += data.toString();
+		});
+		
+		child.on('close', (code) => {
+			console.log('Pydoclint: Process exited with code:', code);
+			console.log('Pydoclint: stdout:', stdout);
+			console.log('Pydoclint: stderr:', stderr);
+			
+			if (code === 0) {
+				resolve([]);  // No errors
+			} else {
+				// Parse pydoclint output
+				const errors = parseRawPydoclintOutput(stdout + stderr);
+				resolve(errors);
+			}
+		});
+		
+		child.on('error', (error) => {
+			console.error('Pydoclint: Process error:', error);
+			if (error.message.includes('ENOENT')) {
+				reject(new Error('pydoclint not found. Please install it: pip install pydoclint'));
+			} else {
+				reject(error);
+			}
+		});
+	});
+}
+
+function parseRawPydoclintOutput(output: string): PydoclintError[] {
+	const errors: PydoclintError[] = [];
+	const lines = output.split('\n');
+	
+	let currentFile = '';
+	
+	for (const line of lines) {
+		const trimmedLine = line.trim();
+		
+		// Detect file path (usually the first non-empty line or line without indentation)
+		if (trimmedLine && !trimmedLine.startsWith(' ') && trimmedLine.endsWith('.py')) {
+			currentFile = trimmedLine;
+			continue;
+		}
+		
+		// Parse error line format: "    123: DOC501: Function `example` has no docstring"
+		const errorMatch = trimmedLine.match(/^(\d+):\s+([A-Z]+\d+):\s+(.+)$/);
+		
+		if (errorMatch && currentFile) {
+			const [, lineStr, code, message] = errorMatch;
+			errors.push({
+				file: currentFile,
+				line: parseInt(lineStr, 10),
+				code: code,
+				message: message
+			});
+		}
+	}
+	
+	return errors;
+}
+
+function parsePydoclintOutput(errors: PydoclintError[], document: vscode.TextDocument): vscode.Diagnostic[] {
+	const diagnostics: vscode.Diagnostic[] = [];
+	
+	for (const error of errors) {
+		// Check if error is for this file
+		const errorFilePath = path.resolve(error.file);
+		const documentFilePath = path.resolve(document.fileName);
+		
+		if (errorFilePath === documentFilePath) {
+			const line = Math.max(0, error.line - 1);  // VS Code uses 0-based line numbers
+			const range = new vscode.Range(line, 0, line, document.lineAt(line).text.length);
+			
+			const severity = getSeverityFromCode(error.code);
+			
+			const diagnostic = new vscode.Diagnostic(
+				range,
+				`${error.code}: ${error.message}`,
+				severity
+			);
+			
+			diagnostic.source = 'pydoclint';
+			diagnostic.code = error.code;
+			
+			diagnostics.push(diagnostic);
+		}
+	}
+	
+	return diagnostics;
+}
+
+function getSeverityFromCode(code: string): vscode.DiagnosticSeverity {
+	// Customize severity based on error codes
+	if (code.startsWith('DOC5')) {
+		return vscode.DiagnosticSeverity.Error;  // Missing docstrings
+	} else if (code.startsWith('DOC1') || code.startsWith('DOC2')) {
+		return vscode.DiagnosticSeverity.Warning;  // Formatting issues
+	} else {
+		return vscode.DiagnosticSeverity.Information;  // Other issues
+	}
 }
 
 // This method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() {
+	console.log('Pydoclint extension deactivated.');
+}

@@ -3,21 +3,71 @@
   "displayName": "Pydoclint",
   "description": "VS Code extension that integrates pydoclint for real-time Python docstring diagnostics",
   "version": "0.0.1",
+  "publisher": "boileaum",
+  "author": {
+    "name": "Matthieu Boileau",
+    "email": "matthieu.boileau@math.unistra.fr"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/boileaum/pydoclint-vscode"
+  },
+  "bugs": {
+    "url": "https://github.com/boileaum/pydoclint-vscode/issues"
+  },
+  "homepage": "https://github.com/boileaum/pydoclint-vscode",
+  "keywords": [
+    "python",
+    "docstring",
+    "linter",
+    "pydoclint",
+    "documentation"
+  ],
   "engines": {
     "vscode": "^1.104.0"
   },
   "categories": [
-    "Other"
+    "Linters",
+    "Programming Languages"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onLanguage:python"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "pydoclint.helloWorld",
-        "title": "Hello World"
+        "command": "pydoclint.checkFile",
+        "title": "Pydoclint: Check Current File"
+      },
+      {
+        "command": "pydoclint.checkWorkspace",
+        "title": "Pydoclint: Check Workspace"
       }
-    ]
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "Pydoclint",
+      "properties": {
+        "pydoclint.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable/disable pydoclint diagnostics"
+        },
+        "pydoclint.style": {
+          "type": "string",
+          "enum": ["google", "numpy", "sphinx"],
+          "default": "google",
+          "description": "Docstring style to validate"
+        },
+        "pydoclint.configFile": {
+          "type": "string",
+          "default": "pyproject.toml",
+          "description": "Path to pydoclint configuration file"
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
