@@ -23,7 +23,7 @@ export function activate(context: vscode.ExtensionContext) {
 		const activeEditor = vscode.window.activeTextEditor;
 		if (activeEditor && activeEditor.document.languageId === 'python') {
 			console.log('Pydoclint: Checking Python file:', activeEditor.document.fileName);
-			vscode.window.showInformationMessage('Pydoclint: Checking current Python file...');
+			vscode.window.setStatusBarMessage('Pydoclint: Checking current Python file...', 3000);
 			checkPythonFile(activeEditor.document, diagnosticCollection);
 		} else {
 			console.log('Pydoclint: No Python file open');
@@ -33,7 +33,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	const checkWorkspaceCommand = vscode.commands.registerCommand('pydoclint.checkWorkspace', () => {
 		console.log('Pydoclint: checkWorkspace command triggered');
-		vscode.window.showInformationMessage('Pydoclint: Checking workspace Python files...');
+		vscode.window.setStatusBarMessage('Pydoclint: Checking workspace Python files...', 5000);
 		checkWorkspacePythonFiles(diagnosticCollection);
 	});
 
@@ -121,9 +121,9 @@ async function checkPythonFile(document: vscode.TextDocument, diagnosticCollecti
 		diagnosticCollection.set(document.uri, diagnostics);
 		
 		if (diagnostics.length > 0) {
-			vscode.window.showInformationMessage(`Pydoclint: Found ${diagnostics.length} issues`);
+			vscode.window.setStatusBarMessage(`Pydoclint: Found ${diagnostics.length} issues`, 4000);
 		} else {
-			vscode.window.showInformationMessage('Pydoclint: No issues found');
+			vscode.window.setStatusBarMessage('Pydoclint: No issues found', 3000);
 		}
 	} catch (error) {
 		console.error('Pydoclint: Error running pydoclint:', error);
@@ -143,7 +143,7 @@ async function checkWorkspacePythonFiles(diagnosticCollection: vscode.Diagnostic
 		}
 	}
 	
-	vscode.window.showInformationMessage('Pydoclint workspace check completed.');
+	vscode.window.setStatusBarMessage('Pydoclint workspace check completed.', 4000);
 }
 
 function runPydoclint(args: string[], cwd?: string): Promise<PydoclintError[]> {
