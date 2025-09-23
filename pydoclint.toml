@@ -1,0 +1,10 @@
+[tool.pydoclint]
+style = "google"
+require-return-section-when-returning-nothing = false
+arg-type-hints-in-signature = true
+arg-type-hints-in-docstring = false
+check-return-types = false
+check-class-attributes = false
+check-style-mismatch = true
+skip-checking-short-docstrings = false
+
