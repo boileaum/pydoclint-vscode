@@ -2,7 +2,7 @@
   "name": "pydoclint",
   "displayName": "Pydoclint",
   "description": "VS Code extension that integrates pydoclint for real-time Python docstring diagnostics",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publisher": "boileaum",
   "author": {
     "name": "Matthieu Boileau",
