@@ -83,16 +83,4 @@ This extension uses the **Language Server Protocol (LSP)** for optimal VS Code i
 3. Press `F5` to launch a new VS Code window with the extension loaded
 4. Make changes and test
 
-## Release Notes
 
-### 0.0.1
-
-Initial release with basic pydoclint integration.
-
-### 0.1.1
-
-Use setStatusBarMessage instead of showInformationMessage for status updates.
-
-### 0.2.0
-
-Add option `pydoclint.ignoreVirtualEnv` (default: true) to skip checking files that live inside common virtual environment folders. This reduces noisy diagnostics from third-party or environment-managed files.
