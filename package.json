@@ -2,7 +2,7 @@
   "name": "pydoclint",
   "displayName": "Pydoclint",
   "description": "VS Code extension that integrates pydoclint for real-time Python docstring diagnostics",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "publisher": "boileaum",
   "author": {
     "name": "Matthieu Boileau",
@@ -66,6 +66,21 @@
           "default": "pyproject.toml",
           "description": "Path to pydoclint configuration file"
         }
+        ,
+        "pydoclint.ignoreVirtualEnv": {
+          "type": "boolean",
+          "default": true,
+          "description": "If true, pydoclint will ignore files located inside common virtual environment folders (venv, .venv, env, .env, etc.)"
+        }
+        ,
+        "pydoclint.ignorePaths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "List of glob patterns to ignore (e.g. [\"**/site-packages/**\", \"**/.venv/**\"]). Patterns follow minimatch syntax."
+        }
       }
     }
   },
@@ -97,6 +112,7 @@
     "typescript": "^5.9.2"
   },
   "dependencies": {
+    "minimatch": "^9.0.0",
     "vscode-languageclient": "^9.0.1",
     "vscode-languageserver": "^9.0.1",
     "vscode-languageserver-textdocument": "^1.0.12"

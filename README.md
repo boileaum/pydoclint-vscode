@@ -22,6 +22,10 @@ This extension contributes the following settings:
 - `pydoclint.enabled`: Enable/disable pydoclint diagnostics (default: `true`)
 - `pydoclint.style`: Docstring style to validate - `google`, `numpy`, or `sphinx` (default: `google`)
 - `pydoclint.configFile`: Path to pydoclint configuration file (default: `pyproject.toml`)
+- `pydoclint.ignoreVirtualEnv`: If true, files located inside common virtual environment folders (e.g. `venv`, `.venv`, `env`, `.env`) will be ignored (default: `true`)
+- `pydoclint.ignorePaths`: Array of glob patterns to ignore (minimatch syntax). If non-empty, these patterns are evaluated first; matched files are skipped. Example: `["**/site-packages/**", "**/.venv/**"]` (default: `[]`)
+
+Priority note: If `pydoclint.ignorePaths` contains patterns, they are tested first. If none match and `pydoclint.ignoreVirtualEnv` is true, the extension falls back to detecting common virtual environment folders.
 
 ## Commands
 
@@ -51,6 +55,19 @@ check-return-types = false
 check-class-attributes = false
 ```
 
+Alternatively, configure the extension in your VS Code `settings.json`:
+
+```json
+{
+   "pydoclint.ignoreVirtualEnv": true,
+   "pydoclint.ignorePaths": [
+      "**/site-packages/**",
+      "**/.venv/**",
+      "**/venv/**"
+   ]
+}
+```
+
 ## Architecture
 
 This extension uses the **Language Server Protocol (LSP)** for optimal VS Code integration:
@@ -71,3 +88,11 @@ This extension uses the **Language Server Protocol (LSP)** for optimal VS Code i
 ### 0.0.1
 
 Initial release with basic pydoclint integration.
+
+### 0.1.1
+
+Use setStatusBarMessage instead of showInformationMessage for status updates.
+
+### 0.2.0
+
+Add option `pydoclint.ignoreVirtualEnv` (default: true) to skip checking files that live inside common virtual environment folders. This reduces noisy diagnostics from third-party or environment-managed files.

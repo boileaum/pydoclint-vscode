@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+// minimatch exports a function; use require to get a callable reference
+const minimatch = require('minimatch');
 import { spawn } from 'child_process';
 import * as fs from 'fs';
 
@@ -89,10 +91,24 @@ async function checkPythonFile(document: vscode.TextDocument, diagnosticCollecti
 		// Get configuration
 		const style = config.get('style', 'google');
 		const configFile = config.get('configFile', 'pyproject.toml');
+		const ignoreVirtualEnv = config.get('ignoreVirtualEnv', true);
+		const ignorePaths: string[] = config.get('ignorePaths', []);
 		
 		console.log('Pydoclint: Using style:', style);
 		console.log('Pydoclint: Config file:', configFile);
 		
+		// If ignorePaths is provided, check glob patterns first
+		if (Array.isArray(ignorePaths) && ignorePaths.length > 0) {
+			const workspaceRoot = workspaceFolder?.uri.fsPath || vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+			if (isIgnoredByPatterns(filePath, ignorePaths, workspaceRoot)) {
+				console.log('Pydoclint: Skipping file matched by ignorePaths:', filePath);
+				return;
+			}
+		} else if (ignoreVirtualEnv && isInVirtualEnv(filePath)) {
+			console.log('Pydoclint: Skipping file inside virtual environment:', filePath);
+			return;
+		}
+
 		// Build pydoclint command
 		const args = [
 			'--style', style,
@@ -263,6 +279,50 @@ function getSeverityFromCode(code: string): vscode.DiagnosticSeverity {
 	} else {
 		return vscode.DiagnosticSeverity.Information;  // Other issues
 	}
+}
+
+function isInVirtualEnv(filePath: string): boolean {
+	// Common virtual environment folder names
+	const venvNames = ['venv', '.venv', 'env', '.env', 'envs', 'venvs'];
+
+	// Normalize and check each segment of the path
+	const parts = path.normalize(filePath).split(path.sep);
+
+	for (const part of parts) {
+		if (venvNames.includes(part)) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+function isIgnoredByPatterns(filePath: string, patterns: string[], workspaceRoot?: string): boolean {
+	// Convert to a path relative to workspace root when possible so patterns like **/site-packages/** match
+	let target = filePath;
+	if (workspaceRoot) {
+		try {
+			const relative = path.relative(workspaceRoot, filePath);
+			// If relative does not start with .. then it's inside workspace
+			if (!relative.startsWith('..')) {
+				target = relative;
+			}
+		} catch (e) {
+			// fallback to absolute
+		}
+	}
+
+	for (const pattern of patterns) {
+		try {
+			if (minimatch(target, pattern, { dot: true })) {
+				return true;
+			}
+		} catch (e) {
+			console.error('Pydoclint: Invalid ignore pattern', pattern, e);
+		}
+	}
+
+	return false;
 }
 
 // This method is called when your extension is deactivated

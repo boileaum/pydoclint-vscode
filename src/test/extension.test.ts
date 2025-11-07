@@ -4,28 +4,26 @@ import * as path from 'path';
 
 suiteSetup(async () => {
 	// Ensure the extension is activated
-	const ext = vscode.extensions.getExtension('undefined_publisher.pydoclint');
+		const ext = vscode.extensions.getExtension('boileaum.pydoclint');
 	if (ext && !ext.isActive) {
 		await ext.activate();
 	}
 });
 
-suite('Pydoclint Extension Test Suite', () => {
+suite('Pydoclint Extension Test Suite', function() {
+	this.timeout(10000);
 	vscode.window.showInformationMessage('Start all tests.');
 
 	test('Extension should be present', () => {
-		const ext = vscode.extensions.getExtension('undefined_publisher.pydoclint');
+		const ext = vscode.extensions.getExtension('boileaum.pydoclint');
 		assert.ok(ext);
 	});
 
 	test('Extension should activate on Python files', async () => {
-		const ext = vscode.extensions.getExtension('undefined_publisher.pydoclint');
-		assert.ok(ext);
-		
 		// Create a Python document
 		const testFilePath = path.join(__dirname, '../../test_file.py');
 		const document = await vscode.workspace.openTextDocument(testFilePath);
-		
+
 		assert.strictEqual(document.languageId, 'python');
 	});
 
@@ -42,6 +40,7 @@ suite('Pydoclint Extension Test Suite', () => {
 		assert.strictEqual(config.get('enabled'), true);
 		assert.strictEqual(config.get('style'), 'google');
 		assert.strictEqual(config.get('configFile'), 'pyproject.toml');
+		assert.strictEqual(config.get('ignoreVirtualEnv'), true);
 	});
 
 	test('Diagnostic collection should be created', async () => {
