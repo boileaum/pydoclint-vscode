@@ -86,6 +86,7 @@ async function checkPythonFile(document: vscode.TextDocument, diagnosticCollecti
 		console.log('Pydoclint: Starting check for file:', document.fileName);
 		const filePath = document.fileName;
 		const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
+		const workspaceRoot = workspaceFolder?.uri.fsPath || vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 		const config = vscode.workspace.getConfiguration('pydoclint');
 		
 		// Get configuration
@@ -116,9 +117,9 @@ async function checkPythonFile(document: vscode.TextDocument, diagnosticCollecti
 			filePath
 		];
 		
-		// Add config file if it exists
-		if (workspaceFolder) {
-			const configPath = path.join(workspaceFolder.uri.fsPath, configFile);
+		// Add config file if it exists (use workspaceRoot fallback)
+		if (workspaceRoot) {
+			const configPath = path.join(workspaceRoot, configFile);
 			if (fs.existsSync(configPath)) {
 				args.unshift('--config', configPath);
 				console.log('Pydoclint: Using config file:', configPath);
@@ -128,7 +129,7 @@ async function checkPythonFile(document: vscode.TextDocument, diagnosticCollecti
 		}
 
 		console.log('Pydoclint: Running command with args:', args);
-		const errors = await runPydoclint(args, workspaceFolder?.uri.fsPath);
+		const errors = await runPydoclint(args, workspaceRoot);
 		console.log('Pydoclint: Found', errors.length, 'errors');
 		
 		const diagnostics = parsePydoclintOutput(errors, document);
