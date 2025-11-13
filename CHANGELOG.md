@@ -11,6 +11,23 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 - Option `pydoclint.ignoreVirtualEnv` (default: true) to skip checking files that live inside common virtual environment folders.
 - Option `pydoclint.ignorePaths` (array of minimatch globs) to allow users to explicitly ignore specific paths (e.g., `**/site-packages/**`).
 
+## [0.2.3] - 2025-11-13
+
+### Added
+
+- Ensure `pyproject.toml` is detected using a workspace-root fallback when running pydoclint.
+
+### Changed
+
+- Improvements to `pydoclint.ignorePaths` and `pydoclint.ignoreVirtualEnv` handling and README documentation.
+- Bumped package version to 0.2.3 and published the release (VSIX attached).
+
+## [0.2.2] - 2025-11-13
+
+### Fixed
+
+- Packaging and build script adjustments; regenerated VSIX for release.
+
 ## [0.1.1] - 2025-09-23
 
 ### Changed
